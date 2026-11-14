@@ -1,0 +1,26 @@
+name: Build WY Glitch macOS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -G Xcode -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release --parallel 3
+      - name: Package
+        run: |
+          mkdir -p package
+          find build -type d \( -name 'WY Glitch.vst3' -o -name 'WY Glitch.component' \) -print -exec cp -R {} package/ \;
+          test -d 'package/WY Glitch.vst3'
+          codesign --force --deep --sign - 'package/WY Glitch.vst3'
+          if test -d 'package/WY Glitch.component'; then codesign --force --deep --sign - 'package/WY Glitch.component'; fi
+          ditto -c -k --keepParent package WY-Glitch-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WY-Glitch-macOS
+          path: WY-Glitch-macOS.zip
