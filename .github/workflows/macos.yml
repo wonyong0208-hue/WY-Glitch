@@ -1,0 +1,38 @@
+
+name: Build WY Glitch for macOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure project
+        run: |
+          cmake -S . -B build \
+            -G Xcode \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build plugin
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Collect plugins
+        run: |
+          mkdir -p dist
+          find build -type d \( -name "*.vst3" -o -name "*.component" \) -prune -exec cp -R {} dist/ \;
+          ls -la dist
+          test -n "$(find dist -maxdepth 1 -name '*.vst3' -print -quit)"
+
+      - name: Upload plugins
+        uses: actions/upload-artifact@v4
+        with:
+          name: WY-Glitch-macOS
+          path: dist/
